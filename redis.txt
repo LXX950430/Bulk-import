@@ -1,0 +1,300 @@
+/usr/local/bin
+start redis server using your config:
+./redis-server [config path] (./redis-server /etc/redis.config)
+start redis client:
+./redis-cli -h [host] -p [port]
+
+1.Redis 设置过期时间：
+expire [key] [time]  
+2.tt1 [key] 查看key 的过期时间  
+-1 表示永不失效
+-2 表示销毁了
+3.key * 查看所有key
+4.LRU动态算法将不用的数据删除：
+内存管理的一种页面置换算法,对于在内存中但是不用的数据块（内存块）叫做LRU,
+操作系统会根据哪些数据属于LRU而将其移除到内存而腾出空间来加载另外的数据。
+volatile-lru: 设定超时时间的数据中，删除最不常用的数据。
+allkeys-lru: 查询所有key中最近最不常使用的数据进行删除,应用最广泛的策略。
+volatile-random: 在已经设定了超时的数据中删除
+allkeys-random: 查询所有的key之后随机删除
+volatile-ttl: 查询全部设定的超时时间的数据，之后排序，将马上将要过期的数据进行删除操作。
+noevication: 如果设置为该属性，则不会进行删除操作,如果内存溢出则返回报错
+nolatile-lfu： 从所有配置了过期时间的键中去除使用频率最少的键
+allkeys-lfu: 从所有键中驱逐使用频率最少的键
+
+-------------------
+6.指定时间内数据同步到磁盘：
+save 900 1 
+save 300 10
+save 60 10000
+900s 内一个key更改,300s内10个更改,60s内10000个更改
+7.客户端关闭服务端：
+shotdown.
+8.防火墙：
+开放：
+firewall-cmd --zone=public --add-port=6379/tcp --permanent
+查看已经开放的端口：
+firewall-cmd
+重启防火墙：
+firewall-cmd --reload
+停止：
+firewall systemctl stop firewall.service 
+禁止firewall开机启动：
+firewall systemctl disable firewall.server 
+
+------------------------------
+9.常用命令key管理
+keys *: 返回满足的虽有key，可以模糊匹配 比如keys abc* 代表abc 开头的key
+exists key ： 是否存在指定的key, 存在返回1，不存在返回0
+expire key second: 设置某个key过期时间 时间为秒
+del key: 删除某个key
+ttl key: 查看剩余时间, 当key不存在时,返回-2； 存在但是没有设置剩余存在时间时,返回 -1，否则,
+以秒为单位,返回key的剩余时间。
+persist key: 取消过去时间
+PEXPIRE key milliseconds 修改key 的过期时间为毫秒
+select: 选择数据库 数据库为0-15(默认一共为16个数据库) s
+设计成多个数据库实际上是为了数据库安全和备份
+move key dbindex: 将当前数据中的key移植到其他数据库
+randomkey: 随机返回一个key
+random key key2: 重命名一个key
+echo: 打印命令
+dbsize: 查看数据库key的数量
+info: 查看数据库信息
+config get * 实时传储收到的请求, 返回相关的设置
+flushdb: 清空当前数据库
+flushall: 清空所有数据库
+
+---------------------------------------
+10.查看类型：
+type [key]
+11.key 命名建议(规范)：
+单个key允许存入512m大小
+1.Key 不要太长, 尽量不要超过1024字节,这不仅消耗内存,而且降低查找效率
+2.Key 不要太短,太短,可以可读性降低
+3.一个项目中, key 最好有统一的命名规范 ,例如user:123:password。（可以表示关系, 例如 keys user*可以查询所有跟user 有关的key） 业界一般规范用：分隔（不用_分隔，可能跟数据库中的字符按名重复
+,例如： u_name）
+4.Key 区分大小写
+
+11.Redis 数据类型：
+String：基本的数据类型,一个键最大能存储512M.
+String 数据结构时简单的key-value类型,value其不仅是String,也可以是数字,是包含多种特殊类型,
+String 是二进制安全的。意思是redis的String可以包含任何数据。
+比如序列化的对象进行存储,比如一张图片进行二进制存储,比如一个简单的字符串,数值等。
+set key value.
+setnx key value 如果key 不存在直接赋值, 如果存在不设值并返回0.(解决分布式锁的方案之一)
+
+get key 存在返回值 不存在返回null（nil）
+getrange key start end: 获取字串（start 全是偏移量,从0开始）
+getset key value: 设置指定的key的值，并返回key的旧值,key不存在的时候返回nil.
+strlength key 获取value的长度
+del key 删除key 不分类型
+批量写,批量读取：
+mset k1,v1,k2,v2 一次写入多个值
+mget k1,v1,k2,v2
+自增自减：
+incr key : inr 命令将key中存储的数字值增加1,不存在被初始化为0然后自增。
+incrby key: 增量值incrby 命令将key中存储的数字加上指定的增量值。
+decr key 或者 decrby key 减值： decr 命令将key 中存储的数字减1
+数据不存在会报类型不符合
+------------------------
+Hash 类型：
+key valud 的对象存储：
+1.hset key file value: ex:hset user:1 id 1
+2.hmset ex: hmset user:1 name:lisi age 22
+3.hget key file: 根据key 跟file 取出value
+4.hmget key file[field] :获取可以所有给定字段的值
+5.hgetall
+6.hdel key file
+7.hlen key :获取字段的数量
+8.hkeys key: 获取所有哈希表中的字段。
+9.hsetnx key file value: 不存在set,有值返回0.
+10.hincrby key field increment： 为哈希表key中的指定字段整数值加上自增量。
+11.hincrbyfloat key field increment
+12.hexists key field
+
+并发保护, 提升效率（无须json 序列化及反序列化）
+
+-----------------------2020-2-29----------------------------
+12.List(双向循环链表 Doubly cycle linked list):
+LPUSH: LPUSH [key] value...(从左侧插入 类似头插法)
+RPUSH: RPUSH [key] value...(从右侧charu 尾插法)
+LRANGE: LRANGE [key] [start] [end]
+LPUSHX [key] value // Insert value to an existing list's head.Operation invalid,if list not existing.
+RPUSHX [key] value // Insert value to an existing list's tail.Operation invalid,if list not existing.
+LLEN [key] // Get list length.
+LINDEX: [key] index.
+
+LPOP [key]: Pop out value from list's head.(Delete value and return value to client.)
+RPOP [key]: Pop out value from list's tail.(Delete value and return value to client.)
+BLPOP [key1] [key2] timeout(necessery parameter, second): Pop out key(s) from list's head, and if no key(s) in list will blocking query until timeout or list not empty.
+BRPOP [key1] [key2] timeout(necessery parameter, second): Pop out key(s) from list's tail, and if no key(s) in list will blocking query until timeout or list not empty.
+LTRIM [key] start end:Trim list and only save list's range from start to end.
+
+LSET [key] index value //Update specific value.
+LINSERT [key] BEFORE | AFTER [pivot] [value] // Insert value to specific value's before or after.
+
+ADVANCE command:
+RPOPLPUSH [source] [destination]: Remove list1's tail element and insert it into list2's head.
+RPOPLPUSH [list1] [list1] // Move element from tail to head.(Cycle)
+
+13.Set(Disordered)：
+SADD key [value]...
+SCARD key // Get set length
+SMEMBERS key: Get all members in collection.
+SISMEMBER key element // Return 1 if existing.
+SRANDMEMEBER key[count] // Return one or more random number.
+SREM key member1 [member2] // Remove one or more random number.
+SPOP key[count] //Remove and return a random number in collection.
+SMOVE source destination. // Move one element from source to destination. 
+
+ADVANCE command:
+1)Difference:
+SDIFF key1 key2 //Based on left set.
+SDIFFSTORE destination key1 [key2] // Return difference collection and restore elements in destination collection.
+2)Intersection:
+SINTER key1 key2 
+SINTERSTORE destination key1 key2 // Return intersection collection and restore elements in destination collection.
+3)Union:
+SUNOIN key1 key2 
+SUNOINSTORE destination key1 key2// Return union collection and restore elements in destination collection.
+
+14.ZSET(Ordered): //Score parameter type is double. 
+ZADD key score1 member1 [score2 member2]...
+ZCARD key // Get length from collection.
+ZCOUNT key min max // Calculate and get member size from ordered collection, which score between min and max.
+ZRANGE key start stop [WITHSCORES] // Get specific range elements from ordered collection with score(from low to high).
+ZREVRANGE key start stop [WITHSCORES] // Return members from a specific range in ordered collection by index, and score from high to low.
+ZRANK key member // Get specific member index form ordered collection. 
+
+ZREM key member1 ....
+ZREMRANGEBYRANK key start stop // Remove all elements from specific {!!!ordered range!!!} in ordered collection which range form "start" to "stop"(low to high)
+ZREMRANGEBYSCORE key min max // Remove all elements from specific {!!!score range!!!} in ordered collection.  
+
+-----------------------2020-3-1----------------------------
+15.Subscribe & Publish:
+SUBSCRIBE channel [channel...] //Subscribe one or more channels information.
+PSUBSCRIBE parttern [parttern...] // Subscribe to one or more changels that match the given pattern.
+
+PUBLISH channel message // Send message to specific channel
+
+UNSUBSCRIBE [channel[channel]] // Unsubscribe specific channel.
+PUNSUBSCRIBE [pattern[pattern...]] //Unsubscribe all pattern channel
+
+
+16. Mutiple DB: // Default config 16 db, client connect to 0 db.
+select db[0->16]
+move key db[num]
+flushdb  // Clear current db's keys.
+flushall // Clear all db.
+
+17.Transaction:
+DISCARD
+EXEC
+MULTI    //Mark transaction start. (Put mutiple command to a queue)
+UNWATCH  // Uncheck all commands from watch
+WATCH key [key...] // Watch one or more keys. (Life cycle: watch command scope will end when transaction execution done or failed)
+
+Example:
+set account:c1 80
+set account:c2 10
+multi
+get account:c1
+get account:c2
+decrby account:c1 50
+increby account:c2 50
+exec
+
+!!! Grammar error will rollback, but business error will not.
+18 Persistence：
+RDB:
+Member snipshot
+
+AOF(Append only file):  //Default file is appendonly.aof
+appendonly yes //Start aof
+#appendfsync always //Slow 
+appendfsync everysec // every second write to disk
+#appendfsync no
+
+----------------------------------
+19 Synchronize with DB:
+Real-time synchronization:
+Update db firstly then set caching expire
+
+1）缓存穿透：
+查询一个一定不存在的数据, 由于缓存是不命中时需要从数据库查询, 查询不到数据则不写入缓存, 这将导致这个不存在的数据每次请求都到数据库中去查询,造成缓存穿透。
+解决办法：
+持久层查询不到就缓存空结果，查询时先判断缓存中时否exists(key), 如果有直接返回空结果, 没有则查询后返回。
+注意： insert时需要清除查询的key，否则即使DB中没有值也查询不到（当然也可以设置空缓存的过度时间）
+
+if(key in redis) {
+	string str = get(key)
+	if(str != null) {
+		return result;
+	}
+} else {
+	查询db 不存在返回"".
+}
+
+2）缓存雪崩：
+如果缓存集中一段时间内失效，发生大量的缓存穿透,虽有的查询都落在DB上,造成缓存雪崩。
+没有完美的解决办法,但是可以分析用户行为,尽力让失效时间均匀分布。大多数系统设计者考虑用加锁或者队列的方式保证
+缓存的单线程（进程）写, 从而避免失效时大量的并发请求落到底层存储系统上。
+
+@Cacheable: 查询时使用,注意Long转String.
+@CachePut: 更新时使用,使用此注解,一定会从db上查询数据。
+@CacheEvict: 删除时使用。
+@Caching: 组合用法。
+
+异步队列
+
+缓存预热：
+
+20.主从复制：
+修改config
+--port //从服务器的端口号
+--slaveof ip port // 指定服务器
+./bin/redis-server ./redis conf --port 6380 --slaveof ip port
+最少三master 三个slave
+半数cluster失败 失效
+
+21集群搭建：
+protected-mode no
+主节点一般用于增删改,从节点一般用于
+
+----------------------------------------2020-3-08----------------------------------------------------
+22.Redis 协议：
+1） CR/CF 表示换行, CR -> '\r', CF -> '\n'
+
+semantic:
+*<number of arguments> CR LF
+$<number of bytes of argument 1> CR LF
+<argument data> CR LF
+...
+$<number of bytes of argument N> CR LF
+<argument data> CR LF
+
+Use send data to redis as a example:
+*3
+$3
+SET
+$5
+mykey
+$7
+myvalue
+
+command: "*3\r\n$3\r\nSET\r\n$5\r\nmykey\r\n$7\r\nmyvalue\r\n"
+
+Response from redis:
+
+
+For Errors the first byte of the reply is "-"
+For Integers the first byte of the reply is ":"
+For Bulk Strings the first byte of the reply is "$"
+For Arrays the first byte of the reply is "*"
+
+
+More details see link:https://redis.io/topics/protocol
+2...x.Spring 2.0后客户端letture
+高级redis 客户端,线程安全同步,异步和响应使用,支持集群,sentinel,管道和编码器
+
+
